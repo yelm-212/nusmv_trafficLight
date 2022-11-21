@@ -1,0 +1,121 @@
+MODULE light(cl)
+-- MODULE main
+
+  VAR
+   state: {Initial, On, Ready, Running, Off};
+   color: {r, g, y, off_light};
+   init_color: {r, g};
+   controller: {ON, OFF};
+   time : 0 .. 80; 
+   -- 1h 동안 수행한다고 가정 (_+20m = 80m)
+
+  DEFINE
+   GTIME:= 10;
+   RTIME:= 12;
+   YTIME:= 2;
+   TIMER:= 3;
+
+  ASSIGN
+    init(color):= off_light; -- initial state(color) is red
+    init(time):= 0;
+    init(controller):= ON; -- initial : turned on
+    init(state):= Initial;
+    init(init_color):= cl;
+
+    next(init_color):= case
+        init_color = r : r;
+        init_color = g : g;
+        init_color = y : y;
+        TRUE                                :init_color;
+    esac;
+
+
+    next(controller):= case
+    -- controller는 다른 변수가 어떤 상태이건 관계없이 
+    -- Off로 전환될 수 있다. 
+    -- Off로 전환 된 이후에는 On의 재입력에 대응하지 않도록 설계되었다고 가정한다.
+        time >= 60 : OFF;
+
+        controller = ON : {ON, OFF};
+
+    -- 지정된 수행 시간 범위를 벗어나면 controller에 의해 강제종료된다.
+        TRUE                                :controller;
+    esac;
+
+    next(state):= case
+        -- time >= 60 : Off;
+    -- controller = OFF : Off;
+        state = Ready & controller = OFF : Off;
+        state = Running & controller = OFF : Ready;
+    -- 지정된 수행 범위를 벗어나면 controller에 의해 강제종료된다.
+
+        state = Initial & controller = ON : On;
+
+        state = On & controller = ON : Ready;
+        state = On & controller = OFF : Ready;
+        state = Ready & controller = ON : Running;
+        state = Running & controller = ON : Running;
+
+        TRUE                                :state;
+    esac;
+
+    next(color):= case
+        -- state = Ready : r;
+        state = Initial & controller = ON : r;
+        -- Controller가 on이면 신호등 점등
+
+        state = Off : off_light;
+        -- 소등
+
+        state = Running & controller = OFF: r;
+        -- OFF 상태로 들어가기 전에 빨간불이 켜진다.
+
+        state = Ready & init_color = r & controller = ON: r;
+        state = Ready & init_color = g & controller = ON: g;
+        -- state = Running & init_color = y : y;
+        -- running 상태에 진입 이전 단계 = ready 상태일때 처음의 신호등 색을 결정해 주어야  함
+
+
+        state = Running & color = r : g; 
+        state = Running & color = g : y;
+        state = Running & color = y : r;
+        -- Running state일때의 신호등 색상 변화
+
+        TRUE                                  : color;
+    esac;
+    
+    next(time):= case
+    -- 운행 시간을 1hour로 가정하였다.
+        state = On : TIMER;
+        state = Off : time;
+        --  off state가 되면, 해당 값으로 time이 고정되도록 하였다.
+
+        time >= 60 : time;
+        --  60초를 넘어가면, 이전의 값으로 time이 고정되도록 하였다.
+
+
+        state = Ready & controller = OFF : time+ TIMER;
+        state = Ready & controller = ON: time;
+
+        state = Running & color = g : time + GTIME;
+        state = Running & color = r : time + RTIME;
+        state = Running & color = y : time + YTIME;
+        state = Running & controller = OFF : time;
+        TRUE                                  : time;
+    esac; 
+
+MODULE main
+  VAR
+    tlNS: light(g);
+    tlEW: light(r);
+
+LTLSPEC G(tlNS.state != Initial)
+LTLSPEC G(tlNS.state != On)
+LTLSPEC G(tlNS.state != Ready)
+LTLSPEC G(tlNS.state != Running)
+LTLSPEC G(tlNS.state != Off)
+LTLSPEC !F(tlNS.color = y & tlNS.state= Running)
+LTLSPEC !F(tlNS.color = g & tlNS.state= Running)
+LTLSPEC !F(tlNS.color = r & tlNS.state= Running)
+LTLSPEC G(tlNS.color = g & tlEW.color= g)
+-- LTLSPEC !F(tlNS.controller = OFF & tlNS.state= Running)
