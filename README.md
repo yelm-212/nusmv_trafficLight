@@ -1,6 +1,6 @@
 # nusmv_trafficLight
 
-![[TrafficLight.jpg]]
+![TrafficLight](TrafficLight.jpg)
 
 - state : Initial, On, Ready, Running, Off의 5가지 상태를 가질 수 있다고 가정한다
 - On / Off를 결정하는 controller가 별도로 존재한다고 가정하고, Ready 상태에 진입했을 때 controller가 ON 이어야 ready 상태로 진입한다.
