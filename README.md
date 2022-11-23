@@ -8,4 +8,4 @@
 - 추가 설정: time 의 값 법의는 0~ 60s이며,
 (작동 시간 1시간) (오차 보정 위해 max값 80으로 설정)
 그 이상 작동하면 OFF되도록 설계되었다고 가정하였다.
-- Running State에서는 (light) color로 r, g , b를 가질 수 있다.
+- Running State에서는 (light) color로 r,g,y를 가질 수 있다.
